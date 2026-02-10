@@ -20,39 +20,65 @@ st.set_page_config(
 # ===============================
 st.markdown("""
 <style>
-body {
-    background-color: #f5f7fa;
-}
-h1, h2, h3 {
-    color: #1f4e79;
-}
-.stButton > button {
-    background-color: #1f77b4;
-    color: white;
-    border-radius: 8px;
-    padding: 8px 20px;
-    border: none;
-    font-weight: bold;
-}
-.stButton > button:hover {
-    background-color: #155a8a;
-}
-.stTextInput > div > div > input {
-    border-radius: 6px;
-}
-.stMetric {
-    background-color: #1e1e1e;
-    color: white;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0px 2px 10px rgba(0,0,0,0.3);
+
+/* App background */
+.stApp {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: #e5e7eb;
 }
 
+/* Headings */
+h1, h2, h3 {
+    color: #facc15;
+}
+
+/* Buttons */
+.stButton > button {
+    background: linear-gradient(90deg, #f59e0b, #facc15);
+    color: #1f2937;
+    border-radius: 10px;
+    padding: 10px 24px;
+    border: none;
+    font-weight: 700;
+    width: 100%;
+}
+
+.stButton > button:hover {
+    transform: scale(1.03);
+    transition: 0.2s;
+}
+
+/* Inputs */
+.stTextInput input {
+    border-radius: 8px;
+}
+
+/* Card style */
+.card {
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    padding: 25px;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    margin-bottom: 20px;
+}
+
+/* Metrics */
+[data-testid="metric-container"] {
+    background: rgba(255,255,255,0.08);
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+/* Hide footer */
 footer {
     visibility: hidden;
 }
+
 </style>
 """, unsafe_allow_html=True)
+
 
 # ==========================================
 # DATASET UNIT FIX
@@ -189,6 +215,9 @@ if "page" not in st.session_state:
     st.session_state.page = "Home"
 if "raw_pred" not in st.session_state:
     st.session_state.raw_pred = None
+if "prediction_history" not in st.session_state:
+    st.session_state.prediction_history = []
+
 
 # ==========================================
 # NAVIGATION
@@ -210,9 +239,6 @@ with nav[5]:
     if st.session_state.logged_in and st.button("🚪 Logout"):
         st.session_state.page = "Logout"
 
-# Auto redirect after login
-if st.session_state.logged_in and st.session_state.page == "Login / Signup":
-    st.session_state.page = "Home"
 
 st.markdown("---")
 page = st.session_state.page
@@ -222,80 +248,136 @@ page = st.session_state.page
 # ==========================================
 if page == "Home":
 
-  st.markdown("<h1 style='text-align:center;'>🌞 Solar Power Prediction System</h1>", unsafe_allow_html=True)
-  st.markdown("<p style='text-align:center;'>AI-Based Solar Energy Estimation & Appliance Analysis</p>", unsafe_allow_html=True)
+    # =============================
+    # BEFORE LOGIN (PUBLIC HOME)
+    # =============================
+    if not st.session_state.logged_in:
 
-  col1, col2, col3 = st.columns([1, 3, 1])
-  with col2:
-        st.image(
-            "https://images.unsplash.com/photo-1509391366360-2e959784a276",
-            width=380
+        st.markdown(
+            "<h1 style='text-align:center;'>🌞 Solar Power Prediction System</h1>",
+            unsafe_allow_html=True
         )
 
-  st.title("🌞 Solar Power Predictor")
-  st.write(
-    "Smart Solar Power Predictor is a user-friendly web application that predicts "
-    "solar power generation using machine learning techniques. The system helps users "
-    "understand how much solar energy can be generated under different weather conditions "
-    "and whether common household appliances can operate using the available solar energy. "
-    "By combining prediction, energy conversion, and appliance feasibility analysis, "
-    "the application supports informed decision-making for efficient energy usage."
-)
+        st.markdown(
+            "<p style='text-align:center;'>AI-Based Solar Energy Estimation & Appliance Analysis</p>",
+            unsafe_allow_html=True
+        )
 
+        col1, col2, col3 = st.columns([1, 3, 1])
+        with col2:
+            st.image(
+                "https://images.unsplash.com/photo-1509391366360-2e959784a276",
+                width=380
+            )
 
-  st.markdown("### 🔑 Key Features")
-  f1, f2, f3 = st.columns(3)
+        # 📘 About
+        st.markdown("### 📘 About the Project")
+        st.write(
+            "Smart Solar Power Predictor is a machine learning-based application that "
+            "predicts solar power generation and checks whether household appliances "
+            "can run using available solar energy."
+        )
 
-  with f1:
-        st.markdown("⚡ **ML-based Power Prediction**")
-  with f2:
-        st.markdown("🌤️ **Weather-based Sunlight Profiles**")
-  with f3:
-        st.markdown("🏠 **Appliance Feasibility Analysis**")
+        # 🔑 Features
+        st.markdown("### 🔑 Key Features")
+        f1, f2, f3 = st.columns(3)
 
+        with f1:
+            st.markdown("### ⚡ ML-Based Prediction")
+            st.write("Predicts solar power using trained ML model.")
+
+        with f2:
+            st.markdown("### 🌤️ Weather-Based Analysis")
+            st.write("Calculates power based on sunlight conditions.")
+
+        with f3:
+            st.markdown("### 🏠 Appliance Feasibility")
+            st.write("Checks if appliances can run using solar energy.")
+
+        st.markdown("---")
+
+      
+    # =============================
+    # AFTER LOGIN (USER HOME)
+    # =============================
+    else:
+        st.markdown(
+            f"<h1 style='text-align:center;'>👋 Welcome, {st.session_state.username}</h1>",
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            "<p style='text-align:center;'>You are successfully logged in.</p>",
+            unsafe_allow_html=True
+        )
+
+        st.markdown("### 🚀 What You Can Do")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.success("🔮 Go to **Predict** to calculate solar power.")
+
+        with col2:
+            st.info("📊 Open **Dashboard** to view past predictions.")
+
+        st.markdown("""
+        ✔ Predict solar energy  
+        ✔ Analyze appliance usage  
+        ✔ View previous predictions  
+        ✔ Make smart energy decisions  
+        """)
 elif page == "Login / Signup":
-    st.title("🔐 Login / Signup")
 
-    tab1, tab2 = st.tabs(["Login", "Signup"])
+    st.markdown("<h1 style='text-align:center;'>☀️ SolarSight</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center;'>AI-Powered Solar Energy Prediction</p>", unsafe_allow_html=True)
 
-    # ===================== LOGIN TAB =====================
-    with tab1:
-        st.subheader("Login")
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
 
-        login_user = st.text_input("Username", key="login_user")
-        login_pass = st.text_input("Password", type="password", key="login_pass")
+        tab1, tab2 = st.tabs(["🔐 Login", "📝 Signup"])
 
-        if st.button("Login"):
-            if authenticate(login_user, login_pass):
-                st.session_state.logged_in = True
-                st.session_state.username = login_user
-                st.session_state.page = "Home"
-                st.success("Logged in successfully")
-                st.rerun()
-            else:
-                st.error("Invalid username or password")
+        # ---------- LOGIN ----------
+        with tab1:
+            st.subheader("Welcome Back")
 
-    # ===================== SIGNUP TAB =====================
-    with tab2:
-        st.subheader("Create New Account")
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
 
-        new_user = st.text_input("New Username", key="signup_user")
-        new_pass = st.text_input("New Password", type="password", key="signup_pass")
-        confirm_pass = st.text_input("Confirm Password", type="password", key="signup_confirm")
-
-        if st.button("Create Account"):
-            if new_pass != confirm_pass:
-                st.error("Passwords do not match")
-            else:
-                result = create_user(new_user, new_pass)
-                if result is True:
+            if st.button("Login"):
+                if authenticate(username, password):
                     st.session_state.logged_in = True
-                    st.session_state.username = new_user
+                    st.session_state.username = username
                     st.session_state.page = "Home"
-                    st.success("Account created successfully")
+                    st.success("Login successful!")
                     st.rerun()
                 else:
-                    st.error(result)
+                    st.error("Invalid username or password")
+
+        # ---------- SIGNUP ----------
+        with tab2:
+            st.subheader("Create SolarSight Account")
+
+            new_user = st.text_input("New Username")
+            new_pass = st.text_input("New Password", type="password")
+            confirm_pass = st.text_input("Confirm Password", type="password")
+
+            if st.button("Create Account"):
+                if new_pass != confirm_pass:
+                    st.error("Passwords do not match")
+                else:
+                    result = create_user(new_user, new_pass)
+                    if result is True:
+                        st.session_state.logged_in = True
+                        st.session_state.username = new_user
+                        st.session_state.page = "Home"
+                        st.success("Account created successfully!")
+                        st.rerun()
+                    else:
+                        st.error(result)
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ==========================================
@@ -329,20 +411,34 @@ elif page == "Predict":
             scaler = bundle.get("scaler")
             if scaler:
                 X = scaler.transform(X)
-            st.session_state.raw_pred = float(bundle["model"].predict(X)[0])
 
+            prediction_value = float(bundle["model"].predict(X)[0])
+
+            # ✅ Store latest prediction
+            st.session_state.raw_pred = prediction_value
+
+            # ✅ Save prediction history
+            st.session_state.prediction_history.append({
+                "User": st.session_state.username,
+                "Prediction (W)": prediction_value,
+                "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
+
+    # ✅ Always read from session
     raw_pred = st.session_state.raw_pred
+
     if raw_pred is None:
-        raw_pred = st.number_input("Model Output (Dataset Scale)", 0.0, 5000.0, 500.0)
+        st.info("Click Predict to generate output.")
+        st.stop()
 
     pred_kw = raw_pred / UNIT_CONVERSION_FACTOR
 
     st.markdown("### 📊 Prediction Summary")
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.metric("Original Output", f"{raw_pred:.2f}")
+        st.metric("Original Output", f"{raw_pred:.2f} W")
     with c2:
-        st.metric("Converted Power (kW)", f"{pred_kw:.2f}")
+        st.metric("Converted Power", f"{pred_kw:.2f} kW")
     with c3:
         st.metric("Unit Conversion", "W → kW")
 
@@ -385,7 +481,7 @@ elif page == "Predict":
         if required_energy <= usable_energy:
             st.success("✅ Selected appliances can run with available solar energy.")
         else:
-            st.warning("⚠️ Energy is insufficient. Reduce usage hours or appliances.")
+            st.warning("⚠️ Energy is insufficient.")
 
         st.caption(
             f"Energy Required: {required_energy:.2f} kWh | "
@@ -402,29 +498,46 @@ elif page == "Dashboard":
         st.warning("Please login to view dashboard")
         st.stop()
 
-    # ✅ FIX: Only show metrics if prediction exists
+    st.subheader(f"👤 User: {st.session_state.username}")
+
+    # ---------------- Latest Prediction ----------------
     if st.session_state.raw_pred is not None:
 
         pred_kw = st.session_state.raw_pred / UNIT_CONVERSION_FACTOR
 
-        st.subheader("📊 Energy Summary")
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+
+        st.markdown("### ⚡ Latest Prediction")
 
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            st.metric("⚡ Power Output", f"{st.session_state.raw_pred:.2f} W")
+            st.metric("Power Output", f"{st.session_state.raw_pred:.2f} W")
 
         with col2:
-            st.metric("🔌 Converted Power", f"{pred_kw:.2f} kW")
+            st.metric("Converted Power", f"{pred_kw:.2f} kW")
 
         with col3:
             status = "High" if pred_kw > 2 else "Moderate" if pred_kw > 1 else "Low"
-            st.metric("📈 Status", status)
+            st.metric("Status", status)
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
     else:
-        st.info("👉 Please go to Predict page and generate prediction first.")
+        st.info("No prediction made yet.")
 
+    # ---------------- Prediction History ----------------
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
 
+    st.markdown("### 📜 Prediction History")
+
+    if st.session_state.prediction_history:
+        df = pd.DataFrame(st.session_state.prediction_history)
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.info("No previous predictions found.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
 # ABOUT US
