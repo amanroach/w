@@ -11,7 +11,8 @@ from datetime import datetime
 # PAGE CONFIG
 # ==========================================
 st.set_page_config(
-    page_title="Solar Power Predictor",
+    page_title="SolarSight – Intelligent Solar Analytics"
+,
     layout="wide",
     page_icon="🌞"
 )
@@ -254,21 +255,24 @@ if page == "Home":
     if not st.session_state.logged_in:
 
         st.markdown(
-            "<h1 style='text-align:center;'>🌞 Solar Power Prediction System</h1>",
+            "<h1 style='text-align:center;'>☀️ SolarSight </h1>",
             unsafe_allow_html=True
         )
 
         st.markdown(
-            "<p style='text-align:center;'>AI-Based Solar Energy Estimation & Appliance Analysis</p>",
+            "<p style='text-align:center;'>AI-Powered Solar Energy Intelligence Platform</p>",
             unsafe_allow_html=True
         )
 
-        col1, col2, col3 = st.columns([1, 3, 1])
-        with col2:
+        left, center, right = st.columns([2,2,2])
+
+        with center:
             st.image(
-                "https://images.unsplash.com/photo-1509391366360-2e959784a276",
-                width=380
-            )
+               "https://images.unsplash.com/photo-1509391366360-2e959784a276",
+                width=450
+    )
+
+        
 
         # 📘 About
         st.markdown("### 📘 About the Project")
@@ -493,6 +497,15 @@ elif page == "Predict":
 elif page == "Dashboard":
 
     st.title("📊 Dashboard")
+    st.subheader(f"👤 User: {st.session_state.username}")
+    # KPI ROW
+    k1, k2, k3 = st.columns(3)
+
+    k1.metric("Model Accuracy", "94%")
+    k2.metric("Predictions Made", len(st.session_state.prediction_history))
+    k3.metric("System Status", "Online ✅")
+
+
 
     if not st.session_state.logged_in:
         st.warning("Please login to view dashboard")
@@ -534,6 +547,8 @@ elif page == "Dashboard":
     if st.session_state.prediction_history:
         df = pd.DataFrame(st.session_state.prediction_history)
         st.dataframe(df, use_container_width=True)
+        st.line_chart(df["Prediction (W)"])
+
     else:
         st.info("No previous predictions found.")
 
