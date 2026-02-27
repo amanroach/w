@@ -94,6 +94,8 @@ DB = "users.db"
 def init_db():
     conn = sqlite3.connect(DB)
     cur = conn.cursor()
+
+    # Users table
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,9 +105,19 @@ def init_db():
             created_at TEXT
         )
     """)
+
+    # 🔥 NEW: Predictions table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS predictions(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            prediction_w REAL,
+            timestamp TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
-
 # ==========================================
 # PASSWORD UTILITIES
 # ==========================================
@@ -216,8 +228,7 @@ if "page" not in st.session_state:
     st.session_state.page = "Home"
 if "raw_pred" not in st.session_state:
     st.session_state.raw_pred = None
-if "prediction_history" not in st.session_state:
-    st.session_state.prediction_history = []
+
 
 
 # ==========================================
@@ -418,17 +429,24 @@ elif page == "Predict":
 
             prediction_value = float(bundle["model"].predict(X)[0])
 
-            # ✅ Store latest prediction
+            # ✅ Store latest prediction in session (for display only)
             st.session_state.raw_pred = prediction_value
 
-            # ✅ Save prediction history
-            st.session_state.prediction_history.append({
-                "User": st.session_state.username,
-                "Prediction (W)": prediction_value,
-                "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            })
+            # 🔥 Save prediction permanently in SQLite
+            conn = sqlite3.connect(DB)
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO predictions (username, prediction_w, timestamp) VALUES (?, ?, ?)",
+                (
+                    st.session_state.username,
+                    prediction_value,
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                )
+            )
+            conn.commit()
+            conn.close()
 
-    # ✅ Always read from session
+    # Always read latest prediction from session
     raw_pred = st.session_state.raw_pred
 
     if raw_pred is None:
@@ -496,22 +514,27 @@ elif page == "Predict":
 # ==========================================
 elif page == "Dashboard":
 
-    st.title("📊 Dashboard")
-    st.subheader(f"👤 User: {st.session_state.username}")
-    # KPI ROW
-    k1, k2, k3 = st.columns(3)
-
-    k1.metric("Model Accuracy", "94%")
-    k2.metric("Predictions Made", len(st.session_state.prediction_history))
-    k3.metric("System Status", "Online ✅")
-
-
-
     if not st.session_state.logged_in:
         st.warning("Please login to view dashboard")
         st.stop()
 
+    st.title("📊 Dashboard")
     st.subheader(f"👤 User: {st.session_state.username}")
+
+    # 🔥 Get prediction count from database
+    conn = sqlite3.connect(DB)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT COUNT(*) FROM predictions WHERE username=?",
+        (st.session_state.username,)
+    )
+    prediction_count = cur.fetchone()[0]
+
+    # KPI ROW
+    k1, k2, k3 = st.columns(3)
+    k1.metric("Model Accuracy", "94%")
+    k2.metric("Predictions Made", prediction_count)
+    k3.metric("System Status", "Online ✅")
 
     # ---------------- Latest Prediction ----------------
     if st.session_state.raw_pred is not None:
@@ -519,7 +542,6 @@ elif page == "Dashboard":
         pred_kw = st.session_state.raw_pred / UNIT_CONVERSION_FACTOR
 
         st.markdown("<div class='card'>", unsafe_allow_html=True)
-
         st.markdown("### ⚡ Latest Prediction")
 
         col1, col2, col3 = st.columns(3)
@@ -541,19 +563,24 @@ elif page == "Dashboard":
 
     # ---------------- Prediction History ----------------
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-
     st.markdown("### 📜 Prediction History")
 
-    if st.session_state.prediction_history:
-        df = pd.DataFrame(st.session_state.prediction_history)
+    # 🔥 Fetch history from database
+    cur.execute(
+        "SELECT prediction_w, timestamp FROM predictions WHERE username=? ORDER BY id DESC",
+        (st.session_state.username,)
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    if rows:
+        df = pd.DataFrame(rows, columns=["Prediction (W)", "Time"])
         st.dataframe(df, use_container_width=True)
         st.line_chart(df["Prediction (W)"])
-
     else:
         st.info("No previous predictions found.")
 
     st.markdown("</div>", unsafe_allow_html=True)
-
 # ==========================================
 # ABOUT US
 # ==========================================
